@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # Сервис базы данных
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: microservice_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Проверка готовности БД перед запуском приложения
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d microservice_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Сервис нашего микросервиса
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Передаем URL базы данных. 'db' - это имя сервиса БД в docker-compose
+      DATABASE_URL: "postgresql://user:password@db:5432/microservice_db"
+    depends_on:
+      db:
+        condition: service_healthy # Ждем, пока БД не станет здоровой
+
+volumes:
+  pgdata: # Именованный том для сохранения данных БД
